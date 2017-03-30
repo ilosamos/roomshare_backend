@@ -8,7 +8,7 @@ exports.statusChanged = functions.database.ref('/rooms/{roomID}/status')
     .onWrite(event => {
       // Grab the current value of what was written to the Realtime Database.
       const roomID = event.params.roomID;
-      const status = event.data.child('status').val();
+      const status = event.data.val();
 
       console.log('Status of room "', roomID, '" has changed to ', status,'.');
 
@@ -33,11 +33,11 @@ exports.statusChanged = functions.database.ref('/rooms/{roomID}/status')
                           var statusDescription;
                           var notificationBody;
 
-                          if (status == 0) {
+                          if (status == 1) {
                               statusDescription = "occupied";
                               notificationBody = `${profile.displayName} has entered!`
                           }
-                          else {
+                          else if (status == 0) {
                               statusDescription = "free";
                               notificationBody = `${profile.displayName} has left!`
                           }
