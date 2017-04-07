@@ -1,5 +1,4 @@
 const functions = require('firebase-functions');
-const FCM = require('fcm-node');
 const admin = require('firebase-admin');
 
 admin.initializeApp(functions.config().firebase);
@@ -13,22 +12,29 @@ exports.statusChanged = functions.database.ref('/rooms/{roomID}/status')
       console.log('Status of room "', roomID, '" has changed to ', status,'.');
 
       //get all followers of this room
-      var followersRef = admin.database().ref(`/rooms/${roomID}/follower/`);
+      var roomRef = admin.database().ref(`/rooms/${roomID}`);
 
-      return followersRef.once('value', function(snapshot) {
+      return roomRef.once('value', function(snapshot) {
           const deviceTokens = [];
+          const currentUid = snapshot.child('currentUser').val();
+          const followersSnapshot = snapshot.child('follower');
 
-          snapshot.forEach(function(childSnapshot) {
+          followersSnapshot.forEach(function(childSnapshot) {
               var followerUid = childSnapshot.key;
               console.log('Follower found: ',followerUid);
+
+              // If follower is currentUser dont send push notificationTokens
+              if (followerUid == currentUid) {
+                return;
+              }
 
               admin.database().ref(`/users/${followerUid}/notificationTokens`).once('value', function(tokensSnapshot) {
                   if (tokensSnapshot.hasChildren()) {
                       const tokens = Object.keys(tokensSnapshot.val());
-                      console.log(tokens.length,' tokens found for user ',followerUid, ' now sending notification');
+                      console.log(tokens.length,' tokens found for user ',currentUid, ' now sending notification');
 
-                      //Get user profile of user in room
-                      const getUserProfile = admin.auth().getUser(followerUid).then(profile => {
+                      // Get user profile of user in room
+                      const getUserProfile = admin.auth().getUser(currentUid).then(profile => {
                           // Notification details.
                           var statusDescription;
                           var notificationBody;
